@@ -1,0 +1,27 @@
+language: go
+go:
+  - "1.13"  # 版本
+branches:
+  only:
+    - master  # 设置自动化部署的源码分支
+cache:
+  directories:
+    - forcache
+before_install:
+  - export TZ='Asia/Shanghai'  # 设置时区
+  # 设置github账户信息
+  - git config --global user.name "bsn_travis" #设置github用户名
+  - git config --global user.email 513026809@qq.com #设置github用户邮箱
+  #- npm install -g hexo
+  - go --version
+  # 安装依赖组件
+install:
+  - pwd
+  - ls -ll
+# 执行的命令
+script:
+  - pwd
+  - ls -ll
+# 执行的成功后执行 
+after_success:
+  - echo $github_user

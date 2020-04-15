@@ -1,0 +1,3 @@
+[submodule "tdm_git_sync"]
+	path = tdm_git_sync
+	url = git@e.coding.net:bsn69/tdm/tdm_git_sync.git

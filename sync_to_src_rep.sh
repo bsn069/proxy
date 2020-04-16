@@ -26,15 +26,17 @@ fi
 
 echo 更新原仓库
 pushd $src_rep_name
+git status
 git checkout .
 git clean -fdx
 git pull
 popd
 
-echo 将当前仓库内容打包
+echo 将当前仓库已push内容打包
 rm -rf $this_rep_pkg_name.tar
 git archive --format tar --output $this_rep_pkg_name.tar $sync_git_rep_branch
 
+echo 创建解包目录$this_rep_pkg_name
 if [ -d "$this_rep_pkg_name" ]; then
     echo 移除旧的目录$this_rep_pkg_name
     rm -rf $this_rep_pkg_name
@@ -44,7 +46,6 @@ if [ -d "$this_rep_pkg_name" ]; then
         exit 2
     fi
 fi
-echo 创建解包目录$this_rep_pkg_name
 mkdir $this_rep_pkg_name
 if [ ! -d "$this_rep_pkg_name" ]; then
     echo 目录$this_rep_pkg_name 创建失败
@@ -61,36 +62,17 @@ popd
  
 echo 将当前仓库解包到$this_rep_pkg_name
 tar -xf $this_rep_pkg_name.tar -C $this_rep_pkg_name
-exit 0
 
-rm -rf src_rep
-git clone git@gitee.com:bsn/proxy.git src_rep
-
-echo 拉取最新的原仓库
-pushd src_rep
-git pull
-git checkout .
-git clean -fdx
-git pull
-popd
-
-echo 删除原仓库所有文件
-rm -rf src_rep/*
-rm -rf src_rep/.gitmodules
-rm -rf src_rep/.travis.yml
-
-echo 将当前仓库内容打包
-rm -rf src_rep.tar
-git archive --format tar --output src_rep.tar master
-echo 将当前仓库解包到原仓库
-tar -xf src_rep.tar -C src_rep
-
-exit
-echo 上传最新的原仓库
-pushd src_rep
-git submodule init
-git submodule update
+echo 上传最新的原仓库$this_rep_pkg_name
+pushd $this_rep_pkg_name
+ls -ll
+git status
 git add .
 git commit -m "auto sync to src rep"
 git push
 popd
+ 
+echo 删除中间文件
+rm -rf $this_rep_pkg_name.tar
+rm -rf $this_rep_pkg_name
+ 

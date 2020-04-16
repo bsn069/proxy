@@ -31,6 +31,12 @@ if [ ! -d "$src_rep_name" ]; then
         echo 原仓库拉取失败
         exit 1
     fi
+
+    echo 初始化原仓库子模块
+    pushd $src_rep_name
+        git submodule init
+        git submodule update
+    popd
 fi
 
 echo 更新原仓库

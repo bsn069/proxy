@@ -1,6 +1,6 @@
 #!/bin/sh
  
-echo 在备份库修改后，需要执行此脚本 将修改同步到原仓库
+echo 在备份库修改后，需要执行此脚本 将已push的修改同步到原仓库
 
 src_rep_git="git@gitee.com:bsn/proxy.git"
 echo 原仓库git地址 $src_rep_git
@@ -8,12 +8,21 @@ git_submodule_1="tdm_git_sync"
 echo 子模块1 $git_submodule_1
 
 src_rep_name="tmp_src_rep"
-echo 原仓库存放目录 $src_rep_name
+echo 原仓库存放目录 $src_rep_name 需要加到.gitignore
 this_rep_pkg_name="tmp_this_rep"
 echo 本仓库打包文件名 $this_rep_pkg_name
 sync_git_rep_branch="master"
 echo 同步分支 $sync_git_rep_branch
- 
+
+echo 检测是否在原git库 $src_rep_gi
+cmdRet=`git remote -v | grep $src_rep_git`
+echo aa $cmdRet
+if [[ $cmdRet != "" ]]
+then
+	echo 不允许在原库执行同步到原的操作
+    exit 1
+fi
+
 if [ ! -d "$src_rep_name" ]; then
     echo 原仓库不存在，需要拉取
     git clone $src_rep_git $src_rep_name

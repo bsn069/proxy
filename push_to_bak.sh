@@ -35,6 +35,7 @@ fi
 
 echo 更新目标库
 pushd $des_rep_dir
+git checkout $bak_git_rep_branch
 git status
 git checkout .
 git clean -fdx

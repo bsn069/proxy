@@ -30,7 +30,7 @@ git pull
 echo 确保有文件变更，可以推送到仓库
 date > deploy_ver.txt
 git status
-git add .
+git add --all
 git commit -m "只是为了触发仓库同步"
 git push
  

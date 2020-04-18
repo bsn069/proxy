@@ -35,6 +35,7 @@ if [ ! -d "$src_rep_name" ]; then
     pushd $src_rep_name
         git submodule init
         git submodule update
+        git submodule foreach git checkout $sync_git_rep_branch
     popd
 fi
 
@@ -43,6 +44,7 @@ pushd $src_rep_name
 git status
 git checkout .
 git clean -fdx
+git checkout $sync_git_rep_branch
 git pull
 popd
 
@@ -72,6 +74,7 @@ cp -r $src_rep_name/.git $this_rep_pkg_name/
 echo 还原子模块
 pushd $this_rep_pkg_name/
 git checkout -- $git_submodule_1
+git submodule foreach git checkout $sync_git_rep_branch
 popd
  
 echo 将当前仓库解包到$this_rep_pkg_name
@@ -81,7 +84,7 @@ echo 上传最新的原仓库$this_rep_pkg_name
 pushd $this_rep_pkg_name
 ls -ll
 git status
-git add .
+git add --all
 git commit -m "从备份仓库同步到原仓库"
 git push
 popd

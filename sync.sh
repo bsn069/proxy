@@ -12,7 +12,6 @@ fi
 
 git checkout master
 git pull
-git submodule init
 git submodule update
 echo 确保有文件变更，可以推送到仓库
 date > deploy_ver.txt

@@ -16,11 +16,10 @@ echo 同步分支 $sync_git_rep_branch
 
 echo 检测是否在原git库 $src_rep_gi
 cmdRet=`git remote -v | grep $src_rep_git`
-if [[ $cmdRet != "" ]] then
+if [ "$cmdRet" != "" ]; then
 	echo 不允许在原库执行同步到原的操作
     exit 1
 fi
-exit 0
 
 if [ ! -d "$src_rep_name" ]; then
     echo 原仓库不存在，需要拉取

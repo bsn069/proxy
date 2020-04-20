@@ -75,8 +75,10 @@ type Request struct {
 	// AddrSpec of the the network that sent the request
 	RemoteAddr *AddrSpec
 	// AddrSpec of the desired destination
+	// 要访问的目标地址
 	DestAddr *AddrSpec
 	// AddrSpec of the actual destination (might be affected by rewrite)
+	// 实际的目的地址
 	realDestAddr *AddrSpec
 	bufConn      io.Reader
 }
@@ -88,6 +90,8 @@ type conn interface {
 
 // NewRequest creates a new Request from the tcp connection
 func NewRequest(bufConn io.Reader) (*Request, error) {
+	fmt.Println("创建连接请求")
+
 	// Read the version byte
 	header := []byte{0, 0, 0}
 	if _, err := io.ReadAtLeast(bufConn, header, 3); err != nil {
@@ -122,6 +126,7 @@ func (s *Server) handleRequest(req *Request, conn conn) error {
 	// Resolve the address if we have a FQDN
 	dest := req.DestAddr
 	if dest.FQDN != "" {
+		fmt.Printf("dest.FQDN:%s", dest.FQDN)
 		ctx_, addr, err := s.config.Resolver.Resolve(ctx, dest.FQDN)
 		if err != nil {
 			if err := sendReply(conn, hostUnreachable, nil); err != nil {
@@ -135,6 +140,7 @@ func (s *Server) handleRequest(req *Request, conn conn) error {
 
 	// Apply any address rewrites
 	req.realDestAddr = req.DestAddr
+	// 目标地址改写
 	if s.config.Rewriter != nil {
 		ctx, req.realDestAddr = s.config.Rewriter.Rewrite(ctx, req)
 	}
@@ -168,16 +174,19 @@ func (s *Server) handleConnect(ctx context.Context, conn conn, req *Request) err
 	}
 
 	// Attempt to connect
+	// 拨号 建立连接
 	dial := s.config.Dial
 	if dial == nil {
 		dial = func(ctx context.Context, net_, addr string) (net.Conn, error) {
 			return net.Dial(net_, addr)
 		}
 	}
+
+	// 和真实目标建立连接
 	target, err := dial(ctx, "tcp", req.realDestAddr.Address())
 	if err != nil {
 		msg := err.Error()
-		resp := hostUnreachable
+		resp := hostUnreachable // 拨号失败 目标不可达
 		if strings.Contains(msg, "refused") {
 			resp = connectionRefused
 		} else if strings.Contains(msg, "network is unreachable") {
@@ -191,18 +200,23 @@ func (s *Server) handleConnect(ctx context.Context, conn conn, req *Request) err
 	defer target.Close()
 
 	// Send success
+	// 连接目标成功 本地发出连接的地址
 	local := target.LocalAddr().(*net.TCPAddr)
 	bind := AddrSpec{IP: local.IP, Port: local.Port}
+	// 通知连接成功 告诉客户端 本地发起连接的地址
 	if err := sendReply(conn, successReply, &bind); err != nil {
 		return fmt.Errorf("Failed to send reply: %v", err)
 	}
 
 	// Start proxying
 	errCh := make(chan error, 2)
+	// 把远端的转发给客户端 req.bufConn->target
 	go proxy(target, req.bufConn, errCh)
+	// 把客户端发来的转发给远端 target->conn
 	go proxy(conn, target, errCh)
 
 	// Wait
+	// 等待转发退出 错误时立即退出
 	for i := 0; i < 2; i++ {
 		e := <-errCh
 		if e != nil {
@@ -335,6 +349,7 @@ func sendReply(w io.Writer, resp uint8, addr *AddrSpec) error {
 	}
 
 	// Format the message
+	// 回复消息
 	msg := make([]byte, 6+len(addrBody))
 	msg[0] = socks5Version
 	msg[1] = resp
@@ -358,6 +373,7 @@ type closeWriter interface {
 func proxy(dst io.Writer, src io.Reader, errCh chan error) {
 	_, err := io.Copy(dst, src)
 	if tcpConn, ok := dst.(closeWriter); ok {
+		// 关闭写入端
 		tcpConn.CloseWrite()
 	}
 	errCh <- err

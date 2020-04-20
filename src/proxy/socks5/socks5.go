@@ -107,11 +107,13 @@ func (s *Server) ListenAndServe(network, addr string) error {
 
 // Serve is used to serve connections from a listener
 func (s *Server) Serve(l net.Listener) error {
+	fmt.Println("开始监听")
 	for {
 		conn, err := l.Accept()
 		if err != nil {
 			return err
 		}
+		fmt.Println("接收到新连接 开个协程处理")
 		go s.ServeConn(conn)
 	}
 	return nil
@@ -120,9 +122,13 @@ func (s *Server) Serve(l net.Listener) error {
 // ServeConn is used to serve a single connection.
 func (s *Server) ServeConn(conn net.Conn) error {
 	defer conn.Close()
+	fmt.Println("处理新连接")
+
+	fmt.Println("连接读取")
 	bufConn := bufio.NewReader(conn)
 
 	// Read the version byte
+	fmt.Println("从连接读取1字节 版本号")
 	version := []byte{0}
 	if _, err := bufConn.Read(version); err != nil {
 		s.config.Logger.Printf("[ERR] socks: Failed to get version byte: %v", err)
@@ -137,6 +143,7 @@ func (s *Server) ServeConn(conn net.Conn) error {
 	}
 
 	// Authenticate the connection
+	fmt.Println("进行客户端连接认证")
 	authContext, err := s.authenticate(conn, bufConn)
 	if err != nil {
 		err = fmt.Errorf("Failed to authenticate: %v", err)
@@ -144,6 +151,7 @@ func (s *Server) ServeConn(conn net.Conn) error {
 		return err
 	}
 
+	fmt.Println("创建连接请求")
 	request, err := NewRequest(bufConn)
 	if err != nil {
 		if err == unrecognizedAddrType {

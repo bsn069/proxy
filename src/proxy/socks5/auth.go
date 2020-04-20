@@ -111,41 +111,52 @@ func (a UserPassAuthenticator) Authenticate(reader io.Reader, writer io.Writer) 
 
 // authenticate is used to handle connection authentication
 func (s *Server) authenticate(conn io.Writer, bufConn io.Reader) (*AuthContext, error) {
+	fmt.Println("处理连接认证")
+
 	// Get the methods
+	fmt.Println("获取客户端支持的认证类型")
 	methods, err := readMethods(bufConn)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get auth methods: %v", err)
 	}
 
 	// Select a usable method
+	fmt.Println("从客户端上发的支持的认证列表中 选取服务器也支持的认证方法")
 	for _, method := range methods {
 		cator, found := s.authMethods[method]
 		if found {
+			fmt.Println("找到匹配的认证方法", method)
 			return cator.Authenticate(bufConn, conn)
 		}
 	}
 
 	// No usable method found
+	fmt.Println("未找到匹配的认证方法")
 	return nil, noAcceptableAuth(conn)
 }
 
 // noAcceptableAuth is used to handle when we have no eligible
 // authentication mechanism
 func noAcceptableAuth(conn io.Writer) error {
+	fmt.Println("回复客户端，没找到匹配的认证方法", socks5Version, noAcceptable)
 	conn.Write([]byte{socks5Version, noAcceptable})
-	return NoSupportedAuth
+	return NoSupportedAuth // 不支持的认证方法
 }
 
 // readMethods is used to read the number of methods
 // and proceeding auth methods
 func readMethods(r io.Reader) ([]byte, error) {
+	fmt.Println("获取连接认证方法数")
+
 	header := []byte{0}
 	if _, err := r.Read(header); err != nil {
 		return nil, err
 	}
 
 	numMethods := int(header[0])
+	fmt.Println("客户端支持的认证方法数 1字节", numMethods)
 	methods := make([]byte, numMethods)
 	_, err := io.ReadAtLeast(r, methods, numMethods)
+	fmt.Println("认证方法类型数组", numMethods)
 	return methods, err
 }

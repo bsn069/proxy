@@ -11,14 +11,17 @@ import (
 )
 
 const (
+	// 命令
 	ConnectCommand   = uint8(1)
 	BindCommand      = uint8(2)
 	AssociateCommand = uint8(3)
-	ipv4Address      = uint8(1)
-	fqdnAddress      = uint8(3)
-	ipv6Address      = uint8(4)
+
+	ipv4Address = uint8(1)
+	fqdnAddress = uint8(3)
+	ipv6Address = uint8(4)
 )
 
+// 服务器返回错误码
 const (
 	successReply uint8 = iota
 	serverFailure
@@ -73,6 +76,7 @@ type Request struct {
 	// AuthContext provided during negotiation
 	AuthContext *AuthContext
 	// AddrSpec of the the network that sent the request
+	// 客户端发出连接的地址
 	RemoteAddr *AddrSpec
 	// AddrSpec of the desired destination
 	// 要访问的目标地址
@@ -121,12 +125,13 @@ func NewRequest(bufConn io.Reader) (*Request, error) {
 
 // handleRequest is used for request processing after authentication
 func (s *Server) handleRequest(req *Request, conn conn) error {
+	fmt.Println("处理sock5请求")
 	ctx := context.Background()
 
 	// Resolve the address if we have a FQDN
 	dest := req.DestAddr
 	if dest.FQDN != "" {
-		fmt.Printf("dest.FQDN:%s", dest.FQDN)
+		fmt.Printf("通过域名解析目标ip dest.FQDN:%s", dest.FQDN)
 		ctx_, addr, err := s.config.Resolver.Resolve(ctx, dest.FQDN)
 		if err != nil {
 			if err := sendReply(conn, hostUnreachable, nil); err != nil {
@@ -142,10 +147,12 @@ func (s *Server) handleRequest(req *Request, conn conn) error {
 	req.realDestAddr = req.DestAddr
 	// 目标地址改写
 	if s.config.Rewriter != nil {
+		fmt.Println("改写目标ip")
 		ctx, req.realDestAddr = s.config.Rewriter.Rewrite(ctx, req)
 	}
 
 	// Switch on the command
+	fmt.Printf("处理命令 req.Command:%v", req.Command)
 	switch req.Command {
 	case ConnectCommand:
 		return s.handleConnect(ctx, conn, req)
@@ -163,6 +170,8 @@ func (s *Server) handleRequest(req *Request, conn conn) error {
 
 // handleConnect is used to handle a connect command
 func (s *Server) handleConnect(ctx context.Context, conn conn, req *Request) error {
+	fmt.Printf("处理连接命令 conn:%v", conn)
+
 	// Check if this is allowed
 	if ctx_, ok := s.config.Rules.Allow(ctx, req); !ok {
 		if err := sendReply(conn, ruleFailure, nil); err != nil {
@@ -174,7 +183,6 @@ func (s *Server) handleConnect(ctx context.Context, conn conn, req *Request) err
 	}
 
 	// Attempt to connect
-	// 拨号 建立连接
 	dial := s.config.Dial
 	if dial == nil {
 		dial = func(ctx context.Context, net_, addr string) (net.Conn, error) {
@@ -182,9 +190,10 @@ func (s *Server) handleConnect(ctx context.Context, conn conn, req *Request) err
 		}
 	}
 
-	// 和真实目标建立连接
+	fmt.Printf("连接目的地址 req.realDestAddr:%v", req.realDestAddr)
 	target, err := dial(ctx, "tcp", req.realDestAddr.Address())
 	if err != nil {
+		fmt.Errorf("连接失败 err:%v", req.realDestAddr)
 		msg := err.Error()
 		resp := hostUnreachable // 拨号失败 目标不可达
 		if strings.Contains(msg, "refused") {
@@ -203,7 +212,7 @@ func (s *Server) handleConnect(ctx context.Context, conn conn, req *Request) err
 	// 连接目标成功 本地发出连接的地址
 	local := target.LocalAddr().(*net.TCPAddr)
 	bind := AddrSpec{IP: local.IP, Port: local.Port}
-	// 通知连接成功 告诉客户端 本地发起连接的地址
+	fmt.Printf("通知连接成功 告诉客户端 本地发起连接的地址 bind:%v", bind)
 	if err := sendReply(conn, successReply, &bind); err != nil {
 		return fmt.Errorf("Failed to send reply: %v", err)
 	}
@@ -268,6 +277,7 @@ func (s *Server) handleAssociate(ctx context.Context, conn conn, req *Request) e
 // readAddrSpec is used to read AddrSpec.
 // Expects an address type byte, follwed by the address and port
 func readAddrSpec(r io.Reader) (*AddrSpec, error) {
+	fmt.Println("获取要连接的远端地址")
 	d := &AddrSpec{}
 
 	// Get the address type
@@ -275,6 +285,7 @@ func readAddrSpec(r io.Reader) (*AddrSpec, error) {
 	if _, err := r.Read(addrType); err != nil {
 		return nil, err
 	}
+	fmt.Println("要连接的远端地址类型", addrType)
 
 	// Handle on a per type basis
 	switch addrType[0] {
@@ -319,10 +330,13 @@ func readAddrSpec(r io.Reader) (*AddrSpec, error) {
 
 // sendReply is used to send a reply message
 func sendReply(w io.Writer, resp uint8, addr *AddrSpec) error {
+	fmt.Printf("给客户端发送回复 resp:%v addr:%v", resp, addr)
+
 	// Format the address
 	var addrType uint8
 	var addrBody []byte
 	var addrPort uint16
+
 	switch {
 	case addr == nil:
 		addrType = ipv4Address

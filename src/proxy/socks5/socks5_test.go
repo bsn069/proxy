@@ -3,6 +3,7 @@ package socks5
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -66,16 +67,26 @@ func TestSOCKS5_Connect(t *testing.T) {
 
 	// Connect, auth and connec to local
 	req := bytes.NewBuffer(nil)
-	req.Write([]byte{5})
-	req.Write([]byte{2, NoAuth, UserPassAuth})
-	req.Write([]byte{1, 3, 'f', 'o', 'o', 3, 'b', 'a', 'r'})
-	req.Write([]byte{5, 1, 0, 1, 127, 0, 0, 1})
 
-	port := []byte{0, 0}
+	fmt.Println("版本")
+	req.Write([]byte{socks5Version})
+	fmt.Println("客户端支持2种认证方式")
+	req.Write([]byte{2, NoAuth, UserPassAuth})
+	fmt.Println("服务器只支持用户密码认证 会通知客户端用户密码认证 这里发送用户密码认证")
+	req.Write([]byte{userAuthVersion, 3, 'f', 'o', 'o', 3, 'b', 'a', 'r'})
+
+	fmt.Println("连接远端命令")
+	req.Write([]byte{socks5Version, ConnectCommand})
+	req.Write([]byte{0}) // 预留
+	fmt.Println("要连接的目标地址")
+	req.Write([]byte{ipv4Address})
+	req.Write([]byte{127, 0, 0, 1}) // ipv4地址
+	port := []byte{0, 0}            // 远端端口
 	binary.BigEndian.PutUint16(port, uint16(lAddr.Port))
 	req.Write(port)
 
 	// Send a ping
+	fmt.Println("给目标地址发送数据")
 	req.Write([]byte("ping"))
 
 	// Send all the bytes
@@ -83,14 +94,17 @@ func TestSOCKS5_Connect(t *testing.T) {
 
 	// Verify response
 	expected := []byte{
-		socks5Version, UserPassAuth,
-		1, authSuccess,
-		5,
-		0,
-		0,
-		1,
+		socks5Version, UserPassAuth, // 返回协商后的认证类型 用户密码认证
+		userAuthVersion, authSuccess, // 返回认证成功
+		// 连接命令返回
+		socks5Version,
+		successReply, // resp
+		0,            // 预留
+		// 代理服务器绑定的本地地址
+		ipv4Address,
 		127, 0, 0, 1,
 		0, 0,
+
 		'p', 'o', 'n', 'g',
 	}
 	out := make([]byte, len(expected))
@@ -100,7 +114,7 @@ func TestSOCKS5_Connect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Ignore the port
+	// Ignore the port 因为发出端口是随机的
 	out[12] = 0
 	out[13] = 0
 

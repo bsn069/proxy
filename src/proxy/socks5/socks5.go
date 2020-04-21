@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	socks5Version = uint8(5)
+	socks5Version = uint8(5) // sock 版本
 )
 
 // Config is used to setup and configure a Server
@@ -98,6 +98,7 @@ func New(conf *Config) (*Server, error) {
 
 // ListenAndServe is used to create a listener and serve on it
 func (s *Server) ListenAndServe(network, addr string) error {
+	fmt.Printf("sock5代理监听地址 %s:%s", network, addr)
 	l, err := net.Listen(network, addr)
 	if err != nil {
 		return err
@@ -121,8 +122,8 @@ func (s *Server) Serve(l net.Listener) error {
 
 // ServeConn is used to serve a single connection.
 func (s *Server) ServeConn(conn net.Conn) error {
+	fmt.Printf("处理新连接 conn:%v", conn)
 	defer conn.Close()
-	fmt.Println("处理新连接")
 
 	fmt.Println("连接读取")
 	bufConn := bufio.NewReader(conn)
@@ -134,6 +135,7 @@ func (s *Server) ServeConn(conn net.Conn) error {
 		s.config.Logger.Printf("[ERR] socks: Failed to get version byte: %v", err)
 		return err
 	}
+	fmt.Println("版本号", version)
 
 	// Ensure we are compatible
 	if version[0] != socks5Version {

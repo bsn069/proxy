@@ -20,6 +20,3 @@ jobs:
         ls -llh
         free -h
         ifconfig
-        df -h
-        uname -a
-        

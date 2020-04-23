@@ -7,19 +7,22 @@ on:
 jobs:
 
   build:
-    name: path=jobs.build.name
+    name: Build
     runs-on: ubuntu-latest
     steps:
 
-    - name: path=jobs.build.steps.-name14
+    - name: 安装go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+
+    - name: 拉取最新的代码
       uses: actions/checkout@v2
 
-    - name: path=jobs.build.steps.-name17
+    - name: 执行cmd
       run: |
         pwd
         ls -llh
         free -h
         ifconfig
-        df -h
-        uname -a
-        

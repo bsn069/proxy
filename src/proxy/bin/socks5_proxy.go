@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -8,10 +9,14 @@ import (
 )
 
 func main() {
-	fmt.Println(1)
+	pstrListenAddr := flag.String("addr", ":1080", "listen addr")
+	pstrUser := flag.String("user", "user", "user name")
+	pstrPwd := flag.String("pwd", "pwd", "password")
+	flag.Parse()
+	fmt.Println("Serve on ", *pstrListenAddr)
 
 	creds := socks5.StaticCredentials{
-		"foo": "bar",
+		*pstrUser: *pstrPwd,
 	}
 	cator := socks5.UserPassAuthenticator{Credentials: creds}
 	conf := &socks5.Config{
@@ -25,7 +30,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := server.ListenAndServe("tcp", "127.0.0.1:11080"); err != nil {
+	if err := server.ListenAndServe("tcp", *pstrListenAddr); err != nil {
 		panic(err)
 	}
 }

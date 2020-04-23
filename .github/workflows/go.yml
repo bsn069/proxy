@@ -7,20 +7,14 @@ on:
 jobs:
 
   build:
-    name: Build
+    name: path=jobs.build.name
     runs-on: ubuntu-latest
     steps:
 
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.13
-      id: go
-
-    - name: Check out code into the Go module directory
+    - name: path=jobs.build.steps.-name14
       uses: actions/checkout@v2
 
-    - name: Build
+    - name: path=jobs.build.steps.-name17
       run: |
         pwd
         ls -llh

@@ -1,5 +1,9 @@
 package main
 
+/*
+curl --proxy-user user:pwd --socks5 localhost:1080 http://127.0.0.1
+*/
+
 import (
 	"flag"
 	"fmt"
@@ -21,10 +25,10 @@ func main() {
 	cator := socks5.UserPassAuthenticator{Credentials: creds}
 	conf := &socks5.Config{
 		AuthMethods: []socks5.Authenticator{cator},
-		Logger:      log.New(os.Stdout, "", log.LstdFlags),
+		// AuthMethods: []socks5.Authenticator{cator, socks5.NoAuthAuthenticator{}},
+		Logger: log.New(os.Stdout, "", log.LstdFlags),
 	}
 
-	conf = &socks5.Config{}
 	server, err := socks5.New(conf)
 	if err != nil {
 		panic(err)

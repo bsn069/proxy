@@ -32,7 +32,7 @@ func (p *Pxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	pstrListenAddr := flag.String("addr", ":1080", "listen addr")
+	pstrListenAddr := flag.String("addr", ":8080", "listen addr")
 	flag.Parse()
 
 	fmt.Println("Serve on ", *pstrListenAddr)
